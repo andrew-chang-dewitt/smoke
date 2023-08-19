@@ -1,0 +1,19 @@
+# vim files
+*.swp
+*.swo
+
+# python environment
+.env/
+.envrc
+
+# python caches
+__pycache__/
+.mypy_cache/
+
+# testing coverage reports
+.coverage
+
+# build process side-effects
+amqp_worker.egg-info/
+build/
+dist/

@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+#
+# NAVIGATE TO CORRECT DIRECTORY
+#
+
+# start by going to script dir so all movements
+# from here are relative
+SCRIPT_DIR=`dirname $(realpath "$0")`
+cd $SCRIPT_DIR
+
+
+#
+# INSTALL FROM LISTS
+#
+
+function dev {
+    echo ""
+    echo "Installing dev requirements..."
+    echo ""
+    dev_result=0
+
+    # go up to root
+    cd ..
+    # install from dev list
+    pip install -r requirements/dev.txt
+}
+
+function prod {
+    echo ""
+    echo "Installing prod requirements..."
+    echo ""
+    prod_result=0
+
+    # go up to root
+    cd ..
+    # install from dev list
+    pip install -r requirements/prod.txt
+}
+
+# Install dev, prod, or all requirements depending on argument given 
+if [ $# -eq 0 ]; then
+    dev
+    prod
+
+    if [[ $dev_result != 0 && $prod_result != 0 ]]; then
+        echo "Errors found in both unit & integration tests. See output above."
+        exit $dev_result
+    elif [[ $dev_result != 0 && $prod_result == 0 ]]; then
+        echo "Errors found in unit. See output above."
+        exit $dev_result
+    elif [[ $dev_result == 0 && $prod_result != 0 ]]; then
+        echo "Errors found in integration tests. See output above."
+        exit $prod_result
+    else
+        exit 0
+    fi
+
+elif [[ $1 == 'dev' || $1 == 'development' ]]; then
+    dev ${@:2}
+    exit $dev_result
+elif [[ $1 == 'prod' || $1 == 'production' ]]; then
+    prod ${@:2}
+    exit $prod_result
+else
+    echo "Bad argument given, either specify \`dev\` or \`prod\` tests by giving either word as your first argument to this script, or run both by giving no arguments."
+    exit 1
+fi
