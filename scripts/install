@@ -21,7 +21,7 @@ function dev {
     dev_result=0
 
     # go up to root
-    cd ..
+    cd $SCRIPT_DIR/..
     # install from dev list
     pip install -r requirements/dev.txt
 }
@@ -33,7 +33,7 @@ function prod {
     prod_result=0
 
     # go up to root
-    cd ..
+    cd $SCRIPT_DIR/..
     # install from dev list
     pip install -r requirements/prod.txt
 }
