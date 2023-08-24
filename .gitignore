@@ -4,7 +4,6 @@
 
 # python environment
 .env/
-.envrc
 
 # python caches
 __pycache__/
