@@ -1,9 +1,9 @@
 from time import sleep
-from smoke.thermosistor import setup_probes
+from smoke.thermistor import Probes
 
 
 def main() -> None:
-    probes = setup_probes([1])
+    probes = Probes([1])
 
     while True:
         print(f'Temperatures: {probes}\n')

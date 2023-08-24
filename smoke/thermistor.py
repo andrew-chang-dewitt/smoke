@@ -1,4 +1,4 @@
-"""
+r"""
 Tools for using NTC thermistor probes w/ Raspberry Pi GPIO & MCP3008 ADC.
 
 Assumes you have each probe wired up with a fixed 100k 5% resistor and
@@ -25,11 +25,11 @@ print(f'Current temps:\n{probes}')
 # Probe 4: 95.2 C
 ```
 
-You can also get a tuple of all the current temps (indexed by probe number - 1)
+You can also get a list of all the current temps (indexed by probe number - 1)
 with None representing probes that are turned off with `Probes.temps()`:
 
 ```
-probes.temps() => (35.5, None, None, 95.2, None, None, None, None)
+probes.temps() => [35.5, None, None, 95.2, None, None, None, None]
 ```
 """
 
@@ -69,15 +69,25 @@ class Probes:
     def __init__(
         self,
         probe_nums: List[int],
-        cs: digitalio.DigitalInOut,
-        spi: busio.SPI,
-        mcp: MCP.MCP3008,
         max_probes: int = 8
     ):
+        """
+        Set up thermistor circuitry for the given probes.
+
+        Specify which probes are connected using a list of numbers 1 through 8.
+        e.g. if probes 1 & 3 are connected, use
+
+        ```
+        Probes([1,3])
+        ```
+        """
         self._channels = [None]*max_probes
-        self._cs = cs
-        self._spi = spi
-        self._mcp = mcp
+        self._spi = busio.SPI(
+            clock=board.SCK,
+            MISO=board.MISO,
+            MOSI=board.MOSI)
+        self._cs = digitalio.DigitalInOut(board.D5)
+        self._mcp = MCP.MCP3008(self._spi, self._cs)
         self._max_probes = max_probes
 
         for probe in probe_nums:
@@ -96,20 +106,23 @@ class Probes:
         self._check_valid_probe_num(num)
         self._channels[num - 1] = None
 
-    @staticmethod
-    def _check_valid_probe_num(num: int) -> None:
+        return self
+
+    def _check_valid_probe_num(self, num: int) -> None:
         if num < 1 or num > self._max_probes:
             raise IndexError(
                 f'Probe number {num} is invalid. ' +
-                f'Please specify probes only as numbers 1 through {self._max_probes}.')
+                'Please specify probes only as numbers 1 through ' +
+                f'{self._max_probes}.')
 
-    def temps() -> Tuple[Optional[float]]:
+    def temps(self) -> List[Optional[float]]:
         """
         Get current temps for all probes.
 
-        Temps are represented in Celsius as floats w/ uninitialized probes as None.
+        Temps are represented in Celsius as floats w/ uninitialized probes as
+        None.
         """
-        output: Tuple[Optional[float]] = tuple([None]*self._max_probes)
+        output: List[Optional[float]] = [None]*self._max_probes
 
         for idx, channel in enumerate(self._channels):
             if channel is not None:
@@ -118,7 +131,6 @@ class Probes:
                 output[idx] = temp
 
         return output
-
 
     def __str__(self) -> str:
         """Get newline-separated list of current temps by probe number."""
@@ -129,24 +141,6 @@ class Probes:
                 output_list.append(f'Probe {idx}: {temp}')
 
         return "\n".join(output_list)
-
-
-def setup_probes(probes: List[int]) -> Probes:
-    """
-    Set up thermistor circuitry for the given probes.
-
-    Specify which probes are connected using a list of numbers 1 through 8.
-    e.g. if probes 1 & 3 are connected, use
-
-    ```
-    setup_probes([1,3])
-    ```
-    """
-    spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
-    cs = digitalio.DigitalInOut(board.D5)
-    mcp = MCP.MCP3008(spi, cs)
-
-    return Probes(probes, cs, spi, mcp)
 
 
 def steinhart_temperature_c(
