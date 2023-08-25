@@ -1,2 +1,3 @@
 adafruit-circuitpython-mcp3xxx>=1.4.15
 adafruit-python-shell>=1.7.0
+RPi.GPIO>=0.7.1
