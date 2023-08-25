@@ -46,6 +46,33 @@ FIXED_RESISTOR = 100000.0
 PROBES = MCP.P0, MCP.P1, MCP.P2, MCP.P3, MCP.P4, MCP.P5, MCP.P6, MCP.P7
 
 
+class Probe:
+    """
+    An object representing a single probe.
+
+    Used to get the temperature reading of that probe as a float or string in
+    Celsius or Fahrenheit.
+    """
+
+    _channel: AnalogIn
+    _num: int
+
+    def __init__(self, mcp: MCP.MCP3008, channel: int) -> None:
+        """Initialize a probe on the given MCP3008 data channel."""
+        self._channel = AnalogIn(mcp, PROBES[channel])
+        self._num = channel + 1
+
+    def get_temp_c(self) -> float:
+        """Get the current temperature of the probe in Celsius."""
+        res = resistance(self._channel.value)
+
+        return steinhart_temperature_c(res)
+
+    def __str__(self) -> str:
+        """Render the current temperature of the probe as a string."""
+        return f'Probe {self._num}: {self.get_temp_c()}'
+
+
 class Probes:
     """
     An object representing all available probes.
@@ -60,7 +87,7 @@ class Probes:
     means probes 1 & 3 are available while 2, 4, 5, 6, 7, & 8 are not.
     """
 
-    _channels: List[Optional[AnalogIn]]
+    _probes: List[Optional[Probe]]
     _cs: digitalio.DigitalInOut
     _spi: busio.SPI
     _mcp: MCP.MCP3008
@@ -81,7 +108,7 @@ class Probes:
         Probes([1,3])
         ```
         """
-        self._channels = [None]*max_probes
+        self._probes = [None]*max_probes
         self._spi = busio.SPI(
             clock=board.SCK,
             MISO=board.MISO,
@@ -97,14 +124,24 @@ class Probes:
         """Initialize probe for given number."""
         self._check_valid_probe_num(num)
         index = num - 1
-        self._channels[index] = AnalogIn(self._mcp, PROBES[index])
+        self._probes[index] = Probe(self._mcp, index)
 
         return self
+
+    def get_probe(self, num: int) -> Optional[Probe]:
+        """
+        Get the probe object a given channel number.
+
+        Returns None if probe is not initialized, otherwise returns the Probe.
+        """
+        self._check_valid_probe_num(num)
+        
+        return self.probes[num - 1]
 
     def remove_probe(self, num: int) -> Self:
         """Remove probe for given number."""
         self._check_valid_probe_num(num)
-        self._channels[num - 1] = None
+        self._probes[num - 1] = None
 
         return self
 
@@ -124,11 +161,9 @@ class Probes:
         """
         output: List[Optional[float]] = [None]*self._max_probes
 
-        for idx, channel in enumerate(self._channels):
-            if channel is not None:
-                res = resistance(channel.value)
-                temp = steinhart_temperature_c(res)
-                output[idx] = temp
+        for idx, probe in enumerate(self._probes):
+            if probe is not None:
+                output[idx] = probe.get_temp_c()
 
         return output
 
@@ -136,9 +171,9 @@ class Probes:
         """Get newline-separated list of current temps by probe number."""
         output_list: List[str] = []
 
-        for idx, temp in enumerate(self.temps()):
-            if temp is not None:
-                output_list.append(f'Probe {idx}: {temp}')
+        for probe in self._probes:
+            if probe is not None:
+                output_list.append(str(probe))
 
         return "\n".join(output_list)
 
