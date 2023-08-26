@@ -136,7 +136,7 @@ class Probes:
         """
         self._check_valid_probe_num(num)
         
-        return self.probes[num - 1]
+        return self._probes[num - 1]
 
     def remove_probe(self, num: int) -> Self:
         """Remove probe for given number."""
