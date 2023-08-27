@@ -22,8 +22,10 @@ maintain(107, air, fan)   # maintain an air temp of 107 C
 
 from time import sleep
 from typing import List, Self
+
 from smoke.fan import Fan
 from smoke.thermistor import Probe
+from smoke.trend import find_trend
 
 SAMPLE_RATE = 10    # sample every 10 seconds
 PRECISION = 5       # define a significant difference as 5 degrees Celsius
@@ -64,16 +66,6 @@ class NHistory:
         return self._values
 
 
-def find_trend(values: List[float]) -> float:
-    """Find the trending rate of change for the given list of values."""
-    # first find the relatively best fitting trend line in either linear,
-    # quadratic, etc. from
-    # then use derivatives of that line to find the slope at the newest
-    # (last) point on the line
-    # finally, return that slope value as a float
-    raise NotImplementedError
-
-
 def maintain(target: float, air: Probe, fan: Fan, food: Probe) -> None:
     """
     Attempts to maintain the given target temperature.
@@ -89,7 +81,7 @@ def maintain(target: float, air: Probe, fan: Fan, food: Probe) -> None:
         current_temp = air.get_temp_c()
         history.push(current_temp)
         # determine the trending rate of change based on the history
-        trend = find_trend(history.get_values())
+        trend = find_trend(history.get_values(), SAMPLE_RATE)
         # determine how far off the current temp is from the target
         diff = target - current_temp
 

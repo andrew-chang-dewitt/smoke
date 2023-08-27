@@ -16,32 +16,32 @@ cd $SCRIPT_DIR
 #
 
 function unit {
+    # echo ""
+    # echo "Unit tests not implemented."
+    # echo ""
+    # unit_result=0
+
+    cd ..
+    # enable app virtual environment
+    eval "$(direnv export bash)"
+    if [ !$PYTHONPATH ]; then
+        export PYTHONPATH=$PWD
+    fi
     echo ""
-    echo "Unit tests not implemented."
+
     echo ""
-    unit_result=0
+    echo "Starting unit tests..."
+    echo ""
 
-    # cd ..
-    # # enable app virtual environment
-    # eval "$(direnv export bash)"
-    # if [ !$PYTHONPATH ]; then
-    #     export PYTHONPATH=$PWD
-    # fi
-    # echo ""
+    # run unit tests & save exit code
+    cd test
+    python -m unittest -b $@
+    # save exit code from tests
+    unit_result=$?
 
-    # echo ""
-    # echo "Starting unit tests..."
-    # echo ""
-
-    # # run unit tests & save exit code
-    # cd test
-    # python -m unittest -b $@
-    # # save exit code from tests
-    # unit_result=$?
-
-    # # return to scripts directory
-    # cd $SCRIPT_DIR
-    # echo ""
+    # return to scripts directory
+    cd $SCRIPT_DIR
+    echo ""
 }
 
 function e2e {
