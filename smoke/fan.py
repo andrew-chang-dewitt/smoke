@@ -14,12 +14,11 @@ fan.set_speed(0)    # turn fan off
 ```
 """
 
+from typing import Self
 import RPi.GPIO as IO
 
 # map speed ints to PWM duty cycles
 SPEEDS = [0, 35, 65, 90]
-
-IO.setmode(IO.BCM)
 
 
 class Fan:
@@ -43,6 +42,8 @@ class Fan:
 
     def __init__(self, pin: int) -> None:
         """Initialize a fan object with the given PWM pin."""
+        IO.cleanup()
+        IO.setmode(IO.BCM)
         IO.setup(pin, IO.OUT)
         self._fan = IO.PWM(pin, 100)
         self._fan.start(0)
@@ -54,3 +55,10 @@ class Fan:
         except IndexError:
             raise IndexError(f'Speed {speed} is invalid, please provide a ' +
                              'number from 0 to 4.')
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self) -> None:
+        self._fan.stop()
+        IO.cleanup()
