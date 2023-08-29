@@ -80,6 +80,18 @@ def maintain(target: float, air: Probe, fan: Fan, food: Probe) -> None:
         # get current temp & push it onto the history
         current_temp = air.get_temp_c()
         history.push(current_temp)
+        # update fan speed
+        set_fan_from_temp_and_target(fan, target, history)
+        # wait for 10 seconds & then repeat
+        sleep(SAMPLE_RATE)
+
+
+def set_fan_from_temp_and_target(
+    fan: Fan,
+    target: float,
+    temps: NHistory
+) -> None:
+    """Set fan seed according to latest temp and trends."""
         # determine the trending rate of change based on the history
         trend = find_trend(history.get_values(), SAMPLE_RATE)
         # determine how far off the current temp is from the target
@@ -128,6 +140,3 @@ def maintain(target: float, air: Probe, fan: Fan, food: Probe) -> None:
                 fan.set_speed(0)
 
         # if diff is insignificant, do nothing
-
-        # wait for 10 seconds & then repeat
-        sleep(SAMPLE_RATE)
