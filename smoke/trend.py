@@ -13,10 +13,15 @@ def find_trend(y_values: List[float], delta_x: float) -> float:
 def simple_slope(values: List[Tuple[(float, float)]]) -> float:
     """Find the trending rate of change using a simple heuristic."""
     length = len(values) - 1
+
+    # guard against DivisionByZeroError
+    if length < 1:
+        return 0.0
+
     delta_ys: List[float] = []
     delta_xs: List[float] = []
 
-    for i, value in enumerate(values[1:]): 
+    for i, value in enumerate(values[1:]):
         x, y = value
         x_prev, y_prev = values[i - 1]
         delta_x = x - x_prev
