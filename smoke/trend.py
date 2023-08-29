@@ -1,4 +1,4 @@
-from re import L
+from statistics import fmean
 from typing import List, Tuple
 
 
@@ -20,19 +20,26 @@ def simple_slope(values: List[Tuple[(float, float)]]) -> float:
 
     delta_ys: List[float] = []
     delta_xs: List[float] = []
+    y_values: List[float] = []
 
     for i, value in enumerate(values[1:]):
-        x, y = value
-        x_prev, y_prev = values[i - 1]
-        delta_x = x - x_prev
-        delta_y = y - y_prev
-        delta_xs.append(delta_x)
-        delta_ys.append(delta_y)
+        x_now, y_now = value
+        x_prev, y_prev = values[i]
+
+        delta_xs.append(x_now - x_prev)
+        delta_ys.append(y_now - y_prev)
+        y_values.append(y_prev)
+
+    y_values.append(values[-1][1])
 
     avg_delta_y: float = sum(delta_ys)/length
     avg_delta_x: float = sum(delta_xs)/length
+    avg_slope = avg_delta_y/avg_delta_x
 
-    return avg_delta_y/avg_delta_x
+    avg_y = fmean(y_values)
+    variance_y = sum([(val_y - avg_y)**2 for val_y in y_values])/length
+
+    return avg_slope * (1 + (variance_y/100))
 
 
 def nonlinear_regression_slope(values: List[Tuple[ (float, float) ]]) -> float:
