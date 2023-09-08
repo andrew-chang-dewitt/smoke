@@ -1,3 +1,6 @@
 adafruit-circuitpython-mcp3xxx>=1.4.15
 adafruit-python-shell>=1.7.0
 RPi.GPIO>=0.7.1
+fastapi==0.103.1
+websockets==11.0.3
+uvicorn==0.23.2
