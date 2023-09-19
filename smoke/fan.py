@@ -59,6 +59,6 @@ class Fan:
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self) -> None:
+    def __exit__(self, _, __, ___) -> None:
         self._fan.stop()
         IO.cleanup()
