@@ -18,7 +18,8 @@ def main() -> None:
         # begin maintaining the desired temp
         # FIXME: this won't need to track food temp later
         if air is not None and food is not None:
-            print(f'Maintaining a target temp of {target} C, enter CTRL-C to quit')
+            print(f'Maintaining a target temp of {target}' +
+                  'C, enter CTRL-C to quit')
             maintain(target, air, fan, food)
         else:
             print("There is no air probe plugged in on channel 1")
