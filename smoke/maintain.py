@@ -92,51 +92,46 @@ def set_fan_from_temp_and_target(
     temps: NHistory
 ) -> None:
     """Set fan seed according to latest temp and trends."""
-        # determine the trending rate of change based on the history
-        trend = find_trend(history.get_values(), SAMPLE_RATE)
-        # determine how far off the current temp is from the target
-        diff = target - current_temp
+    values = temps.get_values()
+    # determine the trending rate of change based on the history
+    trend = find_trend(values, SAMPLE_RATE)
+    # determine how far off the current temp is from the target
+    diff = target - values[-1]
 
-        # print status to stdout
-        print(f'Air temp: {air}')
-        print(f'Food temp: {food}')
-        print(f'Diff: {diff}')
-        print(f'Trend: {trend}')
+    # if diff is significantly negative, turn off the fan
+    if diff < (0 - PRECISION):
+        fan.set_speed(0)
 
-        # if diff is significantly negative, turn off the fan
-        if diff < (0 - PRECISION):
+    # if diff is large, set fan sped to fastest
+    elif diff > DIFFS["large"]:
+        # and trend is small, set fan speed to fast
+        if trend < TRENDS["small"]:
+            fan.set_speed(3)
+        # and trend is medium, set fan speed to medium
+        if trend < TRENDS["medium"]:
+            fan.set_speed(2)
+        # and trend is large, set fan speed to slow
+        if trend < TRENDS["large"]:
+            fan.set_speed(1)
+
+    # if diff is medium
+    elif diff > DIFFS["medium"]:
+        # and trend is small, set fan speed to medium
+        if trend < TRENDS["small"]:
+            fan.set_speed(2)
+        # and trend is medium, set fan speed to slow
+        if trend < TRENDS["medium"]:
+            fan.set_speed(1)
+        # and trend is large, set fan speed to off
+        if trend < TRENDS["large"]:
             fan.set_speed(0)
 
-        # if diff is large, set fan sped to fastest
-        elif diff > DIFFS["large"]:
-            # and trend is small, set fan speed to fast
-            if trend < TRENDS["small"]:
-                fan.set_speed(3)
-            # and trend is medium, set fan speed to medium
-            if trend < TRENDS["medium"]:
-                fan.set_speed(2)
-            # and trend is large, set fan speed to slow
-            if trend < TRENDS["large"]:
-                fan.set_speed(1)
+    # if diff is small
+        # and trend is small, set fan speed to slow
+        if trend < TRENDS["small"]:
+            fan.set_speed(1)
+        # and trend is medium or large, set fan speed to off
+        if trend < TRENDS["medium"]:
+            fan.set_speed(0)
 
-        # if diff is medium
-        elif diff > DIFFS["medium"]:
-            # and trend is small, set fan speed to medium
-            if trend < TRENDS["small"]:
-                fan.set_speed(2)
-            # and trend is medium, set fan speed to slow
-            if trend < TRENDS["medium"]:
-                fan.set_speed(1)
-            # and trend is large, set fan speed to off
-            if trend < TRENDS["large"]:
-                fan.set_speed(0)
-
-        # if diff is small
-            # and trend is small, set fan speed to slow
-            if trend < TRENDS["small"]:
-                fan.set_speed(1)
-            # and trend is medium or large, set fan speed to off
-            if trend < TRENDS["medium"]:
-                fan.set_speed(0)
-
-        # if diff is insignificant, do nothing
+    # if diff is insignificant, do nothing
