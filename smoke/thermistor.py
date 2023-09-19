@@ -34,7 +34,7 @@ probes.temps() => [35.5, None, None, 95.2, None, None, None, None]
 """
 
 import math
-from typing import List, Optional, Self
+from typing import Dict, List, Optional, Self
 
 import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
@@ -56,11 +56,13 @@ class Probe:
 
     _channel: AnalogIn
     _num: int
+    _name: Optional[str]
 
     def __init__(self, mcp: MCP.MCP3008, channel: int) -> None:
         """Initialize a probe on the given MCP3008 data channel."""
         self._channel = AnalogIn(mcp, PROBES[channel])
         self._num = channel + 1
+        self._name = None
 
     def get_temp_c(self) -> float:
         """Get the current temperature of the probe in Celsius."""
@@ -68,9 +70,29 @@ class Probe:
 
         return steinhart_temperature_c(res)
 
+    def set_name(self, name: str) -> None:
+        """Set the probe's name as the given string."""
+        self._name = name
+
+    def get_name(self) -> Optional[str]:
+        """Get the probe's name."""
+        return self._name
+
+    def unset_name(self) -> None:
+        """Unname the probe."""
+        self._name = None
+
+    def get_identifier(self) -> str:
+        """Get the probe's name, or number if it doesn't have one."""
+        return self._name if self._name is not None else str(self._num)
+
     def __str__(self) -> str:
         """Render the current temperature of the probe as a string."""
-        return f'Probe {self._num}: {self.get_temp_c()}'
+        prefix = f'{self._name} [{self._num}]' \
+            if self._name is not None \
+            else f'Probe {self._num}'
+
+        return f'{prefix}: {self.get_temp_c()}'
 
 
 class Probes:
@@ -87,11 +109,13 @@ class Probes:
     means probes 1 & 3 are available while 2, 4, 5, 6, 7, & 8 are not.
     """
 
-    _probes: List[Optional[Probe]]
+    _air_probe: Optional[int]
     _cs: digitalio.DigitalInOut
-    _spi: busio.SPI
-    _mcp: MCP.MCP3008
+    _probes: List[Optional[Probe]]
     _max_probes: int
+    _mcp: MCP.MCP3008
+    _spi: busio.SPI
+    _target_probe: Optional[int]
 
     def __init__(
         self,
@@ -116,6 +140,8 @@ class Probes:
         self._cs = digitalio.DigitalInOut(board.D5)
         self._mcp = MCP.MCP3008(self._spi, self._cs)
         self._max_probes = max_probes
+        self._air_probe = None
+        self._target_probe = None
 
         for probe in probe_nums:
             self.add_probe(probe)
@@ -135,7 +161,7 @@ class Probes:
         Returns None if probe is not initialized, otherwise returns the Probe.
         """
         self._check_valid_probe_num(num)
-        
+
         return self._probes[num - 1]
 
     def remove_probe(self, num: int) -> Self:
@@ -145,27 +171,111 @@ class Probes:
 
         return self
 
-    def _check_valid_probe_num(self, num: int) -> None:
-        if num < 1 or num > self._max_probes:
-            raise IndexError(
-                f'Probe number {num} is invalid. ' +
-                'Please specify probes only as numbers 1 through ' +
-                f'{self._max_probes}.')
+    def set_air_probe(self, num: int) -> Self:
+        """Set the probe at the given number as the air temperature probe."""
+        self._check_valid_probe_num(num)
 
-    def temps(self) -> List[Optional[float]]:
+        if self.get_probe(num) is None:
+            raise ValueError(f'Probe number {num} is not set up. ' +
+                             'Please set it up or try a different probe.')
+
+        if self._target_probe == num:
+            raise ValueError(f'Probe number {num} is already in ' +
+                             'use as the target food probe.')
+
+        self._air_probe = num
+        probe = self.get_probe(num)
+
+        if probe is not None:
+            probe.set_name("Air")
+
+        return self
+
+    def unset_air_probe(self) -> Self:
+        """Unset the probe currently designated as the air probe."""
+        if self._air_probe is not None:
+            probe = self.get_air_probe()
+
+            if probe is not None:
+                probe.unset_name()
+
+            self._air_probe = None
+
+        return self
+
+    def get_air_probe(self) -> Optional[Probe]:
+        """Get the air Probe object or raise an exception if it is not set."""
+        if self._air_probe is None:
+            raise ValueError("Air probe is not yet set.")
+
+        return self.get_probe(self._air_probe)
+
+    def set_target_probe(self, num: int) -> Self:
+        """Set probe at the given number as the target temperature probe."""
+        self._check_valid_probe_num(num)
+
+        if self.get_probe(num) is None:
+            raise ValueError(f'Probe number {num} is not set up. ' +
+                             'Please set it up or try a different probe.')
+
+        if self._air_probe == num:
+            raise ValueError(f'Probe number {num} is already in ' +
+                             'use as the air probe.')
+
+        self._target_probe = num
+        probe = self.get_probe(num)
+
+        if probe is not None:
+            probe.set_name("Food")
+
+        return self
+
+    def unset_target_probe(self) -> Self:
+        """Unset the probe currently designated as the target probe."""
+        if self._target_probe is not None:
+            probe = self.get_target_probe()
+            
+            if probe is not None:
+                probe.unset_name()
+
+            self._target_probe = None
+
+        return self
+
+    def get_target_probe(self) -> Optional[Probe]:
+        """
+        Get the food target Probe object.
+
+        Raises an exception if it is not set yet.
+        """
+        if self._target_probe is None:
+            raise ValueError("Target probe is not yet set.")
+
+        return self.get_probe(self._target_probe)
+
+    def temps(self) -> Dict[str, Optional[float]]:
         """
         Get current temps for all probes.
 
         Temps are represented in Celsius as floats w/ uninitialized probes as
         None.
         """
-        output: List[Optional[float]] = [None]*self._max_probes
+        output: Dict[str, Optional[float]] = {}
 
         for idx, probe in enumerate(self._probes):
-            if probe is not None:
-                output[idx] = probe.get_temp_c()
+            if probe is None:
+                output[str(idx)] = None
+            else:
+                output[probe.get_identifier()] = probe.get_temp_c()
 
         return output
+
+    def _check_valid_probe_num(self, num: int) -> None:
+        if num < 1 or num > self._max_probes:
+            raise IndexError(
+                f'Probe number {num} is invalid. ' +
+                'Please specify probes only as numbers 1 through ' +
+                f'{self._max_probes}.')
 
     def __str__(self) -> str:
         """Get newline-separated list of current temps by probe number."""
