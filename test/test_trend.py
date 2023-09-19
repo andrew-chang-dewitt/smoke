@@ -1,6 +1,5 @@
 from typing import List, Tuple
-import unittest
-from unittest import TestCase
+from unittest import TestCase, main
 
 from smoke.trend import simple_slope
 
@@ -41,4 +40,4 @@ class TestSimpleSlope(TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    main()
